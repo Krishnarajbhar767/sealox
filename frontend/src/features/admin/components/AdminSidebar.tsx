@@ -17,6 +17,7 @@ import {
   IconDatabase,
   IconServer2,
 } from '@tabler/icons-react';
+import { getApiOrigin } from '../../../api/apiConfig';
 
 export const AdminSidebar: React.FC = () => {
   const currentPath = useLocation().pathname;
@@ -168,7 +169,7 @@ export const AdminSidebar: React.FC = () => {
 
         <UnstyledButton
           component="a"
-          href="http://localhost:8000/admin/"
+          href={`${getApiOrigin() || 'http://localhost:8000'}/admin/`}
           target="_blank"
           rel="noopener noreferrer"
           px="sm"
@@ -183,7 +184,7 @@ export const AdminSidebar: React.FC = () => {
               </Text>
             </Group>
             <Badge variant="filled" color="dark.6" size="xs" radius="xs" ff="monospace">
-              :8000
+              {getApiOrigin() ? 'API' : ':8000'}
             </Badge>
           </Group>
         </UnstyledButton>
