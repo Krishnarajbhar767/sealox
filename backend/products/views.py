@@ -1,10 +1,12 @@
-from rest_framework import generics, filters, status
+from rest_framework import generics, filters, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
+from django.contrib.auth import authenticate
 from PIL import Image
+from sealox.authentication import generate_admin_token
 from .models import Product
 from .serializers import ProductSerializer, AdminProductSerializer
 
@@ -76,10 +78,76 @@ class ProductDetailAPIView(generics.RetrieveAPIView):
 # ADMIN REACT PANEL API VIEWS
 # ==========================================
 
+class AdminLoginAPIView(APIView):
+    """
+    Public Authentication endpoint for React Admin Panel.
+    Validates admin username and password, returns signed admin bearer token.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username', '').strip()
+        password = request.data.get('password', '').strip()
+
+        if not username or not password:
+            return Response(
+                {'error': 'Please provide both username and password.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(request, username=username, password=password)
+        if not user or not user.is_active:
+            return Response(
+                {'error': 'Invalid username or password.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not (user.is_staff or user.is_superuser):
+            return Response(
+                {'error': 'Access denied: Administrator privileges required.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        token = generate_admin_token(user)
+        return Response({
+            'success': True,
+            'token': token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class AdminVerifyAPIView(APIView):
+    """
+    Token verification endpoint for React Admin.
+    Checks whether the provided Bearer token or session is valid.
+    """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def get(self, request):
+        return Response({
+            'authenticated': True,
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'email': request.user.email,
+                'is_staff': request.user.is_staff,
+                'is_superuser': request.user.is_superuser,
+            }
+        }, status=status.HTTP_200_OK)
+
+
 class AdminProductListCreateAPIView(generics.ListCreateAPIView):
     """
     Admin API: List all products (both active & drafts) or create a new product.
+    Requires administrator authentication.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     serializer_class = AdminProductSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'slug', 'category', 'subtitle', 'description']
@@ -101,7 +169,9 @@ class AdminProductListCreateAPIView(generics.ListCreateAPIView):
 class AdminProductDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     """
     Admin API: Retrieve, update, or delete a product by id or slug.
+    Requires administrator authentication.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     serializer_class = AdminProductSerializer
 
     def get_object(self):
@@ -113,8 +183,10 @@ class AdminProductDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 class AdminProductDuplicateAPIView(APIView):
     """
     Admin API: Thin controller delegating product template duplication to the Model.
-    Follows Rule 5: Thin Views.
+    Requires administrator authentication.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
     def post(self, request, lookup):
         source_product = _resolve_product_by_lookup(Product.objects.all(), lookup)
         duplicated_product = source_product.duplicate_as_template()
@@ -126,7 +198,10 @@ class AdminProductDuplicateAPIView(APIView):
 class AdminProductToggleActiveAPIView(APIView):
     """
     Admin API: Fast toggle for storefront visibility status.
+    Requires administrator authentication.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
     def post(self, request, lookup):
         target_product = _resolve_product_by_lookup(Product.objects.all(), lookup)
         target_product.is_active = not target_product.is_active
@@ -147,8 +222,9 @@ class AdminProductImageUploadAPIView(APIView):
     """
     Dedicated media upload API: handles binary file validation, size limits,
     Pillow image integrity verification, and storage.
-    Keeps binary uploads cleanly decoupled from JSON product CRUD operations.
+    Requires administrator authentication.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):

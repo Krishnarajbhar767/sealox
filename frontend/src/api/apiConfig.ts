@@ -15,7 +15,8 @@ export function getApiOrigin(): string {
   if (typeof envUrl === 'string' && envUrl.trim()) {
     return envUrl.trim().replace(/\/$/, '');
   }
-  return '';
+  // Default to live Render backend origin so requests never fail into SPA index.html
+  return 'https://sealox.onrender.com';
 }
 
 export const API_BASE_URL = `${getApiOrigin()}/api/products`;

@@ -3,6 +3,7 @@ from PIL import Image as PilImage
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APIClient
 from products.models import Product
@@ -30,6 +31,12 @@ class AdminProductApiE2ETests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+        self.admin_user = User.objects.create_superuser(
+            username='admin_e2e',
+            email='admin_e2e@sealox.com',
+            password='password123'
+        )
+        self.client.force_authenticate(user=self.admin_user)
         self.sample_product = Product.objects.create(
             name='SL-CARTRIDGE SINGLE SEAL',
             slug='sl-cartridge-single-seal',
@@ -321,4 +328,39 @@ class AdminProductApiE2ETests(TestCase):
         # Verify duplicated specifications match original
         self.assertEqual(len(response.data['operating_limits']), len(self.sample_product.operating_limits))
         self.assertEqual(len(response.data['face_materials']), len(self.sample_product.face_materials))
+
+    # --------------------------------------------------------------------------
+    # 5. Admin Authentication & Security Tests
+    # --------------------------------------------------------------------------
+
+    def test_unauthenticated_request_rejected(self):
+        """Unauthenticated requests to admin endpoints receive 401 or 403."""
+        unauthenticated_client = APIClient()
+        url = reverse('products:admin-product-list-create')
+        response = unauthenticated_client.get(url)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_admin_login_success_returns_signed_token(self):
+        """Valid admin credentials return 200 with signed token and user profile."""
+        login_url = reverse('products:admin-auth-login')
+        response = self.client.post(login_url, {
+            'username': 'admin_e2e',
+            'password': 'password123',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertIn('token', response.data)
+        self.assertEqual(response.data['user']['username'], 'admin_e2e')
+
+    def test_admin_login_invalid_credentials_returns_401(self):
+        """Invalid admin password returns 401 Unauthorized."""
+        login_url = reverse('products:admin-auth-login')
+        response = self.client.post(login_url, {
+            'username': 'admin_e2e',
+            'password': 'wrongpassword',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn('error', response.data)
         self.assertEqual(response.data['secondary_seal_materials'], self.sample_product.secondary_seal_materials)

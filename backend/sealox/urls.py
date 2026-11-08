@@ -29,6 +29,7 @@ def health_check(request):
         "endpoints": {
             "products": "/api/products/",
             "admin_api": "/api/products/admin/",
+            "admin_auth": "/api/products/admin/auth/login/",
             "django_admin": "/admin/",
         }
     })

@@ -44,3 +44,28 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock window.scrollTo and Element.prototype.scrollIntoView for jsdom
 window.scrollTo = vi.fn();
 Element.prototype.scrollIntoView = vi.fn();
+
+// Mock localStorage for jsdom
+const localStorageStore: Record<string, string> = {};
+const localStorageMock = {
+  getItem: vi.fn((key: string) => localStorageStore[key] || null),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore[key] = String(value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete localStorageStore[key];
+  }),
+  clear: vi.fn(() => {
+    for (const key of Object.keys(localStorageStore)) {
+      delete localStorageStore[key];
+    }
+  }),
+  key: vi.fn((index: number) => Object.keys(localStorageStore)[index] || null),
+  get length() {
+    return Object.keys(localStorageStore).length;
+  },
+};
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});

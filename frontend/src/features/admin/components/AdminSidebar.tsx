@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Stack,
@@ -9,6 +9,7 @@ import {
   UnstyledButton,
   ThemeIcon,
   Paper,
+  Button,
 } from '@mantine/core';
 import {
   IconPackage,
@@ -16,11 +17,21 @@ import {
   IconExternalLink,
   IconDatabase,
   IconServer2,
+  IconLogout,
+  IconUserCheck,
 } from '@tabler/icons-react';
 import { getApiOrigin } from '../../../api/apiConfig';
+import { getAdminUser, clearAdminSession } from '../auth/authStore';
 
 export const AdminSidebar: React.FC = () => {
   const currentPath = useLocation().pathname;
+  const navigate = useNavigate();
+  const currentUser = getAdminUser();
+
+  const handleLogout = () => {
+    clearAdminSession();
+    navigate('/admin/login', { replace: true });
+  };
 
   return (
     <Box
@@ -188,6 +199,40 @@ export const AdminSidebar: React.FC = () => {
             </Badge>
           </Group>
         </UnstyledButton>
+      </Stack>
+
+      {/* Administrator Account & Logout */}
+      <Stack p="md" gap={10} className="border-t border-slate-800 bg-slate-900/50">
+        <Group justify="space-between" align="center">
+          <Group gap={8} align="center">
+            <ThemeIcon size={26} radius="sm" color="teal.9" variant="light">
+              <IconUserCheck size={14} />
+            </ThemeIcon>
+            <Stack gap={0}>
+              <Text size="xs" fw={700} c="white" className="leading-tight">
+                {currentUser?.username || 'Administrator'}
+              </Text>
+              <Text fz={10} c="dimmed" className="leading-tight">
+                Staff / Superuser
+              </Text>
+            </Stack>
+          </Group>
+          <Badge size="xs" color="teal" variant="outline">
+            Active
+          </Badge>
+        </Group>
+
+        <Button
+          onClick={handleLogout}
+          variant="subtle"
+          color="red"
+          size="xs"
+          fullWidth
+          leftSection={<IconLogout size={14} />}
+          className="text-red-400 hover:bg-red-950/30 hover:text-red-300 justify-start"
+        >
+          Sign Out
+        </Button>
       </Stack>
 
       {/* Footer System Status */}

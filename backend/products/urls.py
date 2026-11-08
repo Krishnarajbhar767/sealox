@@ -2,6 +2,8 @@ from django.urls import path
 from .views import (
     ProductListAPIView,
     ProductDetailAPIView,
+    AdminLoginAPIView,
+    AdminVerifyAPIView,
     AdminProductListCreateAPIView,
     AdminProductDetailAPIView,
     AdminProductDuplicateAPIView,
@@ -12,7 +14,11 @@ from .views import (
 app_name = 'products'
 
 urlpatterns = [
-    # React Admin Panel REST APIs
+    # Admin Authentication APIs
+    path('admin/auth/login/', AdminLoginAPIView.as_view(), name='admin-auth-login'),
+    path('admin/auth/verify/', AdminVerifyAPIView.as_view(), name='admin-auth-verify'),
+
+    # React Admin Panel REST APIs (Protected)
     path('admin/', AdminProductListCreateAPIView.as_view(), name='admin-product-list-create'),
     path('admin/upload-image/', AdminProductImageUploadAPIView.as_view(), name='admin-image-upload'),
     path('admin/<str:lookup>/', AdminProductDetailAPIView.as_view(), name='admin-product-detail'),

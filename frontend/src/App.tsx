@@ -7,6 +7,8 @@ import { Contact } from './features/contact/Contact';
 import { ProductDetail } from './features/products/ProductDetail';
 import { AdminDashboard } from './features/admin/AdminDashboard';
 import { ProductEditor } from './features/admin/ProductEditor';
+import { AdminLoginPage } from './features/admin/auth/AdminLoginPage';
+import { ProtectedRoute } from './features/admin/auth/ProtectedRoute';
 import './App.css';
 
 const PublicLayout = () => (
@@ -23,10 +25,15 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Dedicated React Admin Panel Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/products/new" element={<ProductEditor />} />
-        <Route path="/admin/products/:lookup/edit" element={<ProductEditor />} />
+        {/* Admin Login Screen */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+
+        {/* Protected React Admin Panel Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/products/new" element={<ProductEditor />} />
+          <Route path="/admin/products/:lookup/edit" element={<ProductEditor />} />
+        </Route>
 
         {/* Public Storefront Routes */}
         <Route element={<PublicLayout />}>
